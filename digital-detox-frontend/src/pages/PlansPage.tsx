@@ -5,8 +5,10 @@ import type { DetoxPlan, Member } from '../api/types';
 import { getErrorMessage, useAuth } from '../context/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { PageHero } from '../components/PageHero';
 import { planCreateSchema } from '../schemas/auth';
 import type { PlanCreateForm } from '../types/forms';
+import { planStatusLabel } from '../utils/labels';
 
 export function PlansPage() {
   const { role } = useAuth();
@@ -65,20 +67,26 @@ export function PlansPage() {
     }
   };
 
+  const statusClass = (status: string) => status.toLowerCase().replace('_', '-');
+
   return (
     <section className="stack-lg">
       <div className="page-header">
-        <h1>Detox plans</h1>
+        <PageHero
+          emoji="🎯"
+          title="Your detox plans"
+          subtitle="Small steps beat perfect streaks. Pick a plan and check in when you can — no guilt trips."
+        />
         {(role === 'COACH' || role === 'ADMIN') && (
-          <button type="button" onClick={() => setShowCreate((v) => !v)}>
-            {showCreate ? 'Cancel' : 'New plan'}
+          <button type="button" className={showCreate ? 'secondary' : ''} onClick={() => setShowCreate((v) => !v)}>
+            {showCreate ? 'Cancel' : '+ New plan'}
           </button>
         )}
       </div>
 
-      <div className="filters row">
+      <div className="filters row card" style={{ padding: '0.85rem 1rem' }}>
         <input
-          placeholder="Filter by title"
+          placeholder="Search plans..."
           value={titleFilter}
           onChange={(e) => {
             setPage(0);
@@ -92,22 +100,27 @@ export function PlansPage() {
             setStatusFilter(e.target.value);
           }}
         >
-          <option value="">All statuses</option>
+          <option value="">All vibes</option>
           {['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'].map((s) => (
             <option key={s} value={s}>
-              {s}
+              {planStatusLabel(s)}
             </option>
           ))}
         </select>
       </div>
 
       {showCreate && (
-        <form className="card stack" onSubmit={handleSubmit(onCreatePlan)}>
-          <h2>Create plan</h2>
+        <form className="card stack card--pop" onSubmit={handleSubmit(onCreatePlan)}>
+          <div className="section-head">
+            <span className="section-head__icon" aria-hidden="true">
+              📝
+            </span>
+            <h2>Set up a new plan</h2>
+          </div>
           <label>
             Member
             <select {...register('memberProfileUuid')}>
-              <option value="">Select member</option>
+              <option value="">Choose a member</option>
               {members.map((m) => (
                 <option key={m.uuid} value={m.uuid}>
                   {m.displayName} ({m.username})
@@ -117,8 +130,8 @@ export function PlansPage() {
             {errors.memberProfileUuid && <span className="error">{errors.memberProfileUuid.message}</span>}
           </label>
           <label>
-            Title
-            <input {...register('title')} />
+            Plan name
+            <input {...register('title')} placeholder="e.g. Social media reset week" />
           </label>
           <label>
             Start date
@@ -129,54 +142,67 @@ export function PlansPage() {
             <select {...register('status')}>
               {['DRAFT', 'ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'].map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {planStatusLabel(s)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Target screen minutes
-            <input type="number" {...register('targetScreenMinutes', { valueAsNumber: true })} />
+            Daily screen-time target (minutes)
+            <input type="number" {...register('targetScreenMinutes', { valueAsNumber: true })} placeholder="120" />
           </label>
           <button type="submit" disabled={isSubmitting}>
-            Save plan
+            {isSubmitting ? 'Saving...' : 'Create plan'}
           </button>
         </form>
       )}
 
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error-banner">{error}</p>}
 
-      <div className="grid">
-        {plans.map((plan) => (
-          <article key={plan.uuid} className="card">
-            <h3>{plan.title}</h3>
-            <p className="muted">
-              {plan.memberDisplayName} · Coach {plan.coachDisplayName}
-            </p>
-            <p>
-              <span className={`badge ${plan.status.toLowerCase()}`}>{plan.status}</span>
-            </p>
-            <p>
-              Screen target: {plan.targetScreenMinutes ?? '—'} min
-            </p>
-            <Link to={`/plans/${plan.uuid}`}>Open plan</Link>
-          </article>
-        ))}
-      </div>
+      {plans.length === 0 ? (
+        <div className="card empty-state">
+          <span className="empty-state__emoji" aria-hidden="true">
+            🌱
+          </span>
+          <p>No plans yet — your journey starts with one small step.</p>
+        </div>
+      ) : (
+        <div className="bento-grid">
+          {plans.map((plan) => (
+            <article key={plan.uuid} className="card plan-card">
+              <h3>{plan.title}</h3>
+              <p className="plan-card__meta muted">
+                {plan.memberDisplayName} · Coach {plan.coachDisplayName}
+              </p>
+              <p>
+                <span className={`badge ${statusClass(plan.status)}`}>{planStatusLabel(plan.status)}</span>
+              </p>
+              <p className="plan-card__stat">
+                <span aria-hidden="true">📱</span>
+                Target: {plan.targetScreenMinutes ?? '—'} min / day
+              </p>
+              <Link to={`/plans/${plan.uuid}`} className="plan-card__link">
+                Open plan →
+              </Link>
+            </article>
+          ))}
+        </div>
+      )}
 
       <div className="pagination row">
-        <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-          Previous
+        <button type="button" className="secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+          ← Back
         </button>
         <span>
-          Page {page + 1} of {Math.max(totalPages, 1)}
+          {page + 1} / {Math.max(totalPages, 1)}
         </span>
         <button
           type="button"
+          className="secondary"
           disabled={page + 1 >= totalPages}
           onClick={() => setPage((p) => p + 1)}
         >
-          Next
+          Next →
         </button>
       </div>
     </section>
