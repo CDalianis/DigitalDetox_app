@@ -1,4 +1,6 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { Footer } from './components/Footer';
+import { Header } from './components/Header';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -13,7 +15,13 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route element={<Layout />}>
+          <Route
+            element={
+              <Layout header={<Header />} footer={<Footer />}>
+                <Outlet />
+              </Layout>
+            }
+          >
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route element={<ProtectedRoute />}>
