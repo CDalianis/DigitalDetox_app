@@ -28,27 +28,32 @@ export function LoginPage() {
   };
 
   return (
-    <section className="card narrow">
-      <h1>Sign in</h1>
-      <p className="muted">Use your Digital Detox account. Demo admin: <code>admin</code> / <code>Admin123!</code></p>
+    <section className="card narrow auth-card card--pop">
+      <span className="page-hero__emoji" aria-hidden="true">
+        👋
+      </span>
+      <h1>Welcome back</h1>
+      <p className="auth-card__lead">
+        Pick up where you left off. No pressure — just honest check-ins and small wins.
+      </p>
       <form onSubmit={handleSubmit(onSubmit)} className="stack">
         <label>
           Username
-          <input {...register('username')} autoComplete="username" />
+          <input {...register('username')} autoComplete="username" placeholder="your_username" />
           {errors.username && <span className="error">{errors.username.message}</span>}
         </label>
         <label>
           Password
-          <PasswordInput {...register('password')} autoComplete="current-password" />
+          <PasswordInput {...register('password')} autoComplete="current-password" placeholder="••••••••" />
           {errors.password && <span className="error">{errors.password.message}</span>}
         </label>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error-banner">{error}</p>}
         <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Signing in...' : 'Sign in'}
+          {isSubmitting ? 'Signing you in...' : "Let's go"}
         </button>
       </form>
-      <p>
-        No account? <Link to="/register">Register</Link>
+      <p className="auth-footer">
+        New here? <Link to="/register">Create your account</Link>
       </p>
     </section>
   );
