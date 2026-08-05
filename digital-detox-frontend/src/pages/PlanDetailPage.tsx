@@ -7,6 +7,7 @@ import type { Attachment, CheckIn, DetoxPlan, Goal, WeeklyReview } from '../api/
 import { getErrorMessage, useAuth } from '../context/AuthContext';
 import { checkInSchema, goalSchema, reviewSchema } from '../schemas/auth';
 import type { CheckInForm, GoalForm, ReviewForm } from '../types/forms';
+import { goalStatusLabel, planStatusLabel, riskLabel } from '../utils/labels';
 
 export function PlanDetailPage() {
   const { uuid } = useParams<{ uuid: string }>();
@@ -155,61 +156,76 @@ export function PlanDetailPage() {
   };
 
   if (!plan) {
-    return <p>Loading plan...</p>;
+    return <p className="loading-pulse">Loading your plan...</p>;
   }
+
+  const statusClass = plan.status.toLowerCase().replace('_', '-');
 
   return (
     <section className="stack-lg">
-      <Link to="/plans">← Back to plans</Link>
-      <div className="card">
+      <Link to="/plans" className="back-link">
+        ← Back to plans
+      </Link>
+
+      <div className="card card--pop">
         <h1>{plan.title}</h1>
-        <p>{plan.description}</p>
+        {plan.description && <p className="muted">{plan.description}</p>}
         <p className="muted">
-          Member: {plan.memberDisplayName} · Coach: {plan.coachDisplayName}
+          {plan.memberDisplayName} · Coach {plan.coachDisplayName}
         </p>
         <p>
-          Status: <span className={`badge ${plan.status.toLowerCase()}`}>{plan.status}</span>
+          <span className={`badge ${statusClass}`}>{planStatusLabel(plan.status)}</span>
         </p>
       </div>
 
       <div className="card stack">
-        <h2>Goals</h2>
-        {goals.length === 0 && <p className="muted">No goals yet.</p>}
-        <div className="grid">
-          {goals.map((goal) => (
-            <article key={goal.uuid} className="goal-item">
-              <strong>{goal.title}</strong>
-              {goal.description && <p className="muted">{goal.description}</p>}
-              <p>
-                {goal.metricType.replace('_', ' ')}: {goal.currentValue ?? 0} / {goal.targetValue}
-              </p>
-              <span className={`badge ${goal.status.toLowerCase().replace('_', '-')}`}>{goal.status}</span>
-            </article>
-          ))}
+        <div className="section-head">
+          <span className="section-head__icon" aria-hidden="true">
+            🏆
+          </span>
+          <h2>Your goals</h2>
         </div>
+        {goals.length === 0 ? (
+          <p className="hint">No goals yet — your coach can add some targets to aim for.</p>
+        ) : (
+          <div className="grid">
+            {goals.map((goal) => (
+              <article key={goal.uuid} className="goal-item">
+                <strong>{goal.title}</strong>
+                {goal.description && <p className="muted">{goal.description}</p>}
+                <p>
+                  {goal.metricType.replace(/_/g, ' ').toLowerCase()}: {goal.currentValue ?? 0} / {goal.targetValue}
+                </p>
+                <span className={`badge ${goal.status.toLowerCase().replace('_', '-')}`}>
+                  {goalStatusLabel(goal.status)}
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
 
         {canManageGoals && (
           <form className="stack" onSubmit={goalForm.handleSubmit(onSubmitGoal)}>
-            <h3>Add goal</h3>
+            <h3>Add a goal</h3>
             <label>
-              Title
-              <input {...goalForm.register('title')} />
+              Goal name
+              <input {...goalForm.register('title')} placeholder="e.g. Under 2h social media" />
               {goalForm.formState.errors.title && (
                 <span className="error">{goalForm.formState.errors.title.message}</span>
               )}
             </label>
             <label>
-              Description
-              <textarea {...goalForm.register('description')} rows={2} />
+              Why this matters
+              <textarea {...goalForm.register('description')} rows={2} placeholder="Optional note..." />
             </label>
             <div className="row">
               <label>
-                Metric
+                What to track
                 <select {...goalForm.register('metricType')}>
-                  <option value="SCREEN_MINUTES">Screen minutes</option>
-                  <option value="SOCIAL_MINUTES">Social minutes</option>
-                  <option value="SLEEP_HOURS">Sleep hours</option>
-                  <option value="CUSTOM">Custom</option>
+                  <option value="SCREEN_MINUTES">Screen time</option>
+                  <option value="SOCIAL_MINUTES">Social media</option>
+                  <option value="SLEEP_HOURS">Sleep</option>
+                  <option value="CUSTOM">Something else</option>
                 </select>
               </label>
               <label>
@@ -219,10 +235,10 @@ export function PlanDetailPage() {
               <label>
                 Status
                 <select {...goalForm.register('status')}>
-                  <option value="PENDING">Pending</option>
+                  <option value="PENDING">Up next</option>
                   <option value="IN_PROGRESS">In progress</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="FAILED">Failed</option>
+                  <option value="COMPLETED">Done</option>
+                  <option value="FAILED">Tough week</option>
                 </select>
               </label>
             </div>
@@ -233,59 +249,76 @@ export function PlanDetailPage() {
         )}
       </div>
 
-      <div className="card stack">
-        <h2>Weekly reviews</h2>
-        {reviews.length === 0 && <p className="muted">No weekly reviews yet.</p>}
-        {reviews.map((review) => (
-          <article key={review.uuid} className="review-item">
-            <div className="row">
-              <strong>Week of {review.weekStart}</strong>
-              {review.riskLevel && (
-                <span className={`badge risk-${review.riskLevel.toLowerCase()}`}>{review.riskLevel}</span>
-              )}
-            </div>
-            <p className="muted">Coach: {review.coachDisplayName}</p>
-            {review.summary && <p>{review.summary}</p>}
-            {review.recommendation && <p className="muted">Recommendation: {review.recommendation}</p>}
-          </article>
-        ))}
+      <div className="card stack card--coral">
+        <div className="section-head">
+          <span className="section-head__icon" aria-hidden="true">
+            💬
+          </span>
+          <h2>Coach check-ins</h2>
+        </div>
+        <p className="hint">Weekly notes from your coach — honest feedback, zero judgment.</p>
+        {reviews.length === 0 ? (
+          <p className="muted">Nothing here yet. Your coach will drop a note soon.</p>
+        ) : (
+          reviews.map((review) => (
+            <article key={review.uuid} className="review-item">
+              <div className="row">
+                <strong>Week of {review.weekStart}</strong>
+                {review.riskLevel && (
+                  <span className={`badge risk-${review.riskLevel.toLowerCase()}`}>
+                    {riskLabel(review.riskLevel)}
+                  </span>
+                )}
+              </div>
+              <p className="muted">From {review.coachDisplayName}</p>
+              {review.summary && <p>{review.summary}</p>}
+              {review.recommendation && <p className="hint">💡 {review.recommendation}</p>}
+            </article>
+          ))
+        )}
 
         {canAddReview && (
           <form className="stack" onSubmit={reviewForm.handleSubmit(onSubmitReview)}>
-            <h3>Add weekly review</h3>
+            <h3>Leave a weekly note</h3>
             <label>
-              Week start
+              Week starting
               <input type="date" {...reviewForm.register('weekStart')} />
               {reviewForm.formState.errors.weekStart && (
                 <span className="error">{reviewForm.formState.errors.weekStart.message}</span>
               )}
             </label>
             <label>
-              Summary
-              <textarea {...reviewForm.register('summary')} rows={3} />
+              How did the week go?
+              <textarea {...reviewForm.register('summary')} rows={3} placeholder="Keep it real but kind..." />
             </label>
             <label>
-              Recommendation
-              <textarea {...reviewForm.register('recommendation')} rows={2} />
+              Tip for next week
+              <textarea {...reviewForm.register('recommendation')} rows={2} placeholder="One thing to try..." />
             </label>
             <label>
-              Risk level
+              How are they doing?
               <select {...reviewForm.register('riskLevel')}>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
+                <option value="LOW">Chill — on track</option>
+                <option value="MEDIUM">Watch it — needs attention</option>
+                <option value="HIGH">Needs extra support</option>
               </select>
             </label>
             <button type="submit" disabled={reviewForm.formState.isSubmitting}>
-              Publish review
+              Send review
             </button>
           </form>
         )}
       </div>
 
       {canAddCheckIn && (
-        <form className="card stack" onSubmit={checkInForm.handleSubmit(onSubmitCheckIn)}>
-          <h2>Daily check-in</h2>
+        <form className="card stack card--mint" onSubmit={checkInForm.handleSubmit(onSubmitCheckIn)}>
+          <div className="section-head">
+            <span className="section-head__icon" aria-hidden="true">
+              📊
+            </span>
+            <h2>Today's check-in</h2>
+          </div>
+          <p className="hint">Be honest — this is for you, not a report card. Missed a day? That's okay.</p>
           <label>
             Date
             <input type="date" {...checkInForm.register('entryDate')} />
@@ -294,89 +327,109 @@ export function PlanDetailPage() {
             )}
           </label>
           <label>
-            Total screen minutes
-            <input type="number" {...checkInForm.register('totalScreenMinutes', { valueAsNumber: true })} />
+            Total screen time (minutes)
+            <input type="number" {...checkInForm.register('totalScreenMinutes', { valueAsNumber: true })} placeholder="e.g. 180" />
           </label>
           <label>
-            Social media minutes
-            <input type="number" {...checkInForm.register('socialMediaMinutes', { valueAsNumber: true })} />
+            Social media (minutes)
+            <input type="number" {...checkInForm.register('socialMediaMinutes', { valueAsNumber: true })} placeholder="e.g. 90" />
           </label>
           <label>
-            Sleep hours
-            <input type="number" step="0.5" {...checkInForm.register('sleepHours', { valueAsNumber: true })} />
+            Sleep (hours)
+            <input type="number" step="0.5" {...checkInForm.register('sleepHours', { valueAsNumber: true })} placeholder="e.g. 7.5" />
           </label>
           <label>
-            Focus (1-10)
-            <input type="number" {...checkInForm.register('focusScore', { valueAsNumber: true })} />
+            Focus level (1–10)
+            <input type="number" {...checkInForm.register('focusScore', { valueAsNumber: true })} placeholder="How locked-in did you feel?" />
           </label>
           <label>
-            Notes
-            <textarea {...checkInForm.register('notes')} rows={2} />
+            Anything on your mind?
+            <textarea {...checkInForm.register('notes')} rows={2} placeholder="Optional — vent, celebrate, whatever." />
           </label>
           <button type="submit" disabled={checkInForm.formState.isSubmitting}>
-            Submit check-in
+            {checkInForm.formState.isSubmitting ? 'Saving...' : 'Log my day'}
           </button>
         </form>
       )}
 
       <div className="card stack">
-        <h2>Check-in history</h2>
+        <div className="section-head">
+          <span className="section-head__icon" aria-hidden="true">
+            📅
+          </span>
+          <h2>Your history</h2>
+        </div>
         <div className="filters row">
           <input type="date" value={fromDate} onChange={(e) => { setPage(0); setFromDate(e.target.value); }} />
           <input type="date" value={toDate} onChange={(e) => { setPage(0); setToDate(e.target.value); }} />
         </div>
-        {checkIns.map((checkIn) => (
-          <article key={checkIn.uuid} className="checkin-item">
-            <strong>{checkIn.entryDate}</strong>
-            <p>Screen: {checkIn.totalScreenMinutes} min · Social: {checkIn.socialMediaMinutes ?? '—'} min</p>
-            <p>Focus: {checkIn.focusScore ?? '—'} · Stress: {checkIn.stressLevel ?? '—'}</p>
-            {checkIn.notes && <p className="muted">{checkIn.notes}</p>}
-            {checkIn.attachments?.length > 0 && (
-              <ul className="attachment-list">
-                {checkIn.attachments.map((attachment) => (
-                  <li key={attachment.uuid}>
-                    <button
-                      type="button"
-                      className="link-button"
-                      disabled={downloadingId === attachment.uuid}
-                      onClick={() => void downloadFile(checkIn.uuid, attachment)}
-                    >
-                      {attachment.originalFilename} ({attachment.contentType})
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {canAddCheckIn && (
-              <label className="file-upload">
-                Upload screenshot
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  disabled={uploadingFor === checkIn.uuid}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadFile(checkIn.uuid, file);
-                  }}
-                />
-              </label>
-            )}
-          </article>
-        ))}
+        {checkIns.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-state__emoji" aria-hidden="true">
+              📭
+            </span>
+            <p>No check-ins yet. Your first one takes less than a minute.</p>
+          </div>
+        ) : (
+          checkIns.map((checkIn) => (
+            <article key={checkIn.uuid} className="checkin-item">
+              <span className="checkin-item__date">{checkIn.entryDate}</span>
+              <div className="checkin-stats">
+                <span className="stat-pill">📱 {checkIn.totalScreenMinutes} min screen</span>
+                <span className="stat-pill">💬 {checkIn.socialMediaMinutes ?? '—'} min social</span>
+                <span className="stat-pill">🎯 Focus {checkIn.focusScore ?? '—'}/10</span>
+                {checkIn.stressLevel != null && (
+                  <span className="stat-pill">😮‍💨 Stress {checkIn.stressLevel}/10</span>
+                )}
+              </div>
+              {checkIn.notes && <p className="muted">{checkIn.notes}</p>}
+              {checkIn.attachments?.length > 0 && (
+                <ul className="attachment-list">
+                  {checkIn.attachments.map((attachment) => (
+                    <li key={attachment.uuid}>
+                      <button
+                        type="button"
+                        className="link-button"
+                        disabled={downloadingId === attachment.uuid}
+                        onClick={() => void downloadFile(checkIn.uuid, attachment)}
+                      >
+                        📎 {attachment.originalFilename}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canAddCheckIn && (
+                <label className="file-upload">
+                  📸 Drop a screen-time screenshot
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    disabled={uploadingFor === checkIn.uuid}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void uploadFile(checkIn.uuid, file);
+                    }}
+                  />
+                </label>
+              )}
+            </article>
+          ))
+        )}
         <div className="pagination row">
-          <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-            Previous
+          <button type="button" className="secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+            ← Back
           </button>
           <span>
-            Page {page + 1} of {Math.max(totalPages, 1)}
+            {page + 1} / {Math.max(totalPages, 1)}
           </span>
-          <button type="button" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
-            Next
+          <button type="button" className="secondary" disabled={page + 1 >= totalPages} onClick={() => setPage((p) => p + 1)}>
+            Next →
           </button>
         </div>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error-banner">{error}</p>}
     </section>
   );
 }
