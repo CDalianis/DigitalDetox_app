@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { apiFetch } from '../api/client';
 import type { Coach } from '../api/types';
 import { getErrorMessage, useAuth } from '../context/AuthContext';
+import { PageHero } from '../components/PageHero';
 
 export function AdminPage() {
   const { role } = useAuth();
@@ -38,19 +39,28 @@ export function AdminPage() {
 
   return (
     <section className="stack-lg">
-      <h1>Admin · Coach approvals</h1>
-      {error && <p className="error">{error}</p>}
+      <PageHero
+        emoji="🛡️"
+        title="Coach approvals"
+        subtitle="Make sure new coaches are legit before they start working with members."
+      />
+      {error && <p className="error-banner">{error}</p>}
       {pending.length === 0 ? (
-        <p className="muted">No pending coaches.</p>
+        <div className="card empty-state">
+          <span className="empty-state__emoji" aria-hidden="true">
+            ✅
+          </span>
+          <p>All caught up — no coaches waiting for approval.</p>
+        </div>
       ) : (
-        <div className="grid">
+        <div className="bento-grid">
           {pending.map((coach) => (
-            <article key={coach.uuid} className="card">
+            <article key={coach.uuid} className="card plan-card">
               <h3>{coach.displayName}</h3>
-              <p>{coach.specialty ?? 'No specialty'}</p>
+              <p>{coach.specialty ?? 'No specialty listed'}</p>
               <p className="muted">{coach.email}</p>
-              <button type="button" onClick={() => void approve(coach.uuid)}>
-                Approve
+              <button type="button" className="success" onClick={() => void approve(coach.uuid)}>
+                Approve coach
               </button>
             </article>
           ))}
