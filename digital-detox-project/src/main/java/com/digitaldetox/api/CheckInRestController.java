@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -48,7 +49,7 @@ public class CheckInRestController {
     public ResponseEntity<Page<CheckInReadOnlyDTO>> getCheckIns(
             @PathVariable UUID planUuid,
             @ModelAttribute CheckInFilters filters,
-            @PageableDefault(page = 0, size = 10, sort = "entryDate,desc") Pageable pageable)
+            @PageableDefault(page = 0, size = 10, sort = "entryDate", direction = Sort.Direction.DESC) Pageable pageable)
             throws EntityNotFoundException {
         return ResponseEntity.ok(checkInService.getCheckInsPaginated(planUuid, filters, pageable));
     }
