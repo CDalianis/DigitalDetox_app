@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api/client';
 import { PasswordInput } from '../components/PasswordInput';
-import { getErrorMessage } from '../context/AuthContext';
+import { getErrorMessage, useAuth } from '../context/AuthContext';
+import { markNeedsOnboarding } from '../onboarding';
 import { coachRegisterSchema, memberRegisterSchema } from '../schemas/auth';
 import { z } from 'zod';
 
@@ -12,6 +13,7 @@ type RegisterType = 'member' | 'coach';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [type, setType] = useState<RegisterType>('member');
   const [error, setError] = useState('');
 
@@ -29,7 +31,13 @@ export function RegisterPage() {
     try {
       const path = type === 'member' ? '/members/register' : '/coaches/register';
       await apiFetch(path, { method: 'POST', body: JSON.stringify(data) }, false);
-      navigate('/login');
+      markNeedsOnboarding(data.user.username);
+      try {
+        await login({ username: data.user.username, password: data.user.password });
+        navigate('/plans');
+      } catch {
+        navigate('/login');
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     }
