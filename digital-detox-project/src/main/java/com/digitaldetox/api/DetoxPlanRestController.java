@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -52,7 +53,7 @@ public class DetoxPlanRestController {
     public ResponseEntity<Page<DetoxPlanReadOnlyDTO>> getPlans(
             @AuthenticationPrincipal User user,
             @ModelAttribute DetoxPlanFilters filters,
-            @PageableDefault(page = 0, size = 10, sort = "startDate,desc") Pageable pageable) {
+            @PageableDefault(page = 0, size = 10, sort = "startDate", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(detoxPlanService.getPlansPaginated(user.getUsername(), filters, pageable));
     }
 
