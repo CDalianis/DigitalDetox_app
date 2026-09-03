@@ -3,6 +3,7 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { OnboardingWizard } from './components/OnboardingWizard';
 import { AuthProvider } from './context/AuthContext';
 import { AdminPage } from './pages/AdminPage';
 import { LoginPage } from './pages/LoginPage';
@@ -14,6 +15,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <OnboardingWizard />
         <Routes>
           <Route
             element={
