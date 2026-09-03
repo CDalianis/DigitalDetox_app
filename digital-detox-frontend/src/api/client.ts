@@ -24,6 +24,7 @@ export function setToken(token: string | null) {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('displayName');
+    localStorage.removeItem('username');
   }
 }
 
