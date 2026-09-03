@@ -2,7 +2,7 @@
 
 Teen-friendly React + TypeScript SPA for the Digital Detox / **Unplug** platform.
 
-> **Full documentation:** [DIGITAL-DETOX-README.md](../DIGITAL-DETOX-README.md) — setup, demo walkthrough, API integration.
+> **Full documentation:** [README.md](../README.md) — setup, demo walkthrough, API integration.
 
 ## Quick start
 
@@ -27,7 +27,7 @@ Open [http://localhost:5173](http://localhost:5173). The dev server proxies `/ap
 
 Built for **teens** as the primary audience:
 
-- Dark theme with vibrant purple / mint / coral accents
+- Dark theme with sage green / mint / coral accents
 - Supportive, guilt-free copy (no streak pressure)
 - Bento-style cards, rounded tactile components
 - Emoji section headers for quick scanning
@@ -39,6 +39,8 @@ Built for **teens** as the primary audience:
 flowchart TD
   Root[/] --> Login[/login]
   Root --> Register[/register]
+  Register --> Wizard[Onboarding wizard]
+  Wizard --> Plans
   Root --> Protected{JWT present?}
   Protected -->|no| Login
   Protected -->|yes| Plans[/plans]
@@ -50,7 +52,7 @@ flowchart TD
 | Route | Access | Features |
 |-------|--------|----------|
 | `/login` | Public | Zod login, password visibility toggle |
-| `/register` | Public | Member or coach tabs |
+| `/register` | Public | Member or coach tabs; first login opens a short tour |
 | `/plans` | Authenticated | Bento plan grid, filters, create (coach/admin) |
 | `/plans/:uuid` | Authenticated | Goals, coach reviews, check-ins, upload/download |
 | `/admin` | Admin only | Approve pending coaches |
@@ -103,8 +105,9 @@ flowchart TB
 ```
 src/
 ├── api/           client.ts (fetch + JWT + download), types.ts
-├── components/    Layout, PageHero, PasswordInput, ProtectedRoute
+├── components/    Layout, PageHero, PasswordInput, ProtectedRoute, OnboardingWizard
 ├── context/       AuthContext
+├── onboarding.ts  First-run tour steps
 ├── pages/         Login, Register, Plans, PlanDetail, Admin
 ├── schemas/       Zod validation schemas
 ├── types/         Inferred form types
