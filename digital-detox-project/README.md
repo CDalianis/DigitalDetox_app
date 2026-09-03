@@ -2,12 +2,12 @@
 
 Spring Boot REST API for the **Unplug** digital wellness platform (`com.digitaldetox`).
 
-> **Full documentation:** [DIGITAL-DETOX-README.md](../DIGITAL-DETOX-README.md) — architecture, API reference, demo flow, troubleshooting.
+> **Full documentation:** [README.md](../README.md) — architecture, API reference, demo flow, troubleshooting.
 
 ## Quick start
 
 ```bash
-# 1. Create PostgreSQL database (see master README)
+# 1. Create PostgreSQL database (see root README)
 # 2. Run the API
 ./gradlew bootRun
 ```
@@ -120,6 +120,17 @@ erDiagram
 ./gradlew build
 ./gradlew test
 ```
+
+Unit tests (JUnit 5 + Mockito) cover plan creation, check-in uniqueness, coach approval, JWT claims, and ownership checks in `SecurityService`.
+
+### Postman (REST integration)
+
+Import:
+
+- Collection: [`postman/Unplug-Digital-Detox.postman_collection.json`](postman/Unplug-Digital-Detox.postman_collection.json)
+- Environment: [`postman/Unplug-local.postman_environment.json`](postman/Unplug-local.postman_environment.json)
+
+The collection description lists the demo run order. Login requests store the JWT in `{{token}}`; register/create requests save `memberUuid`, `coachUuid`, `planUuid`, and `checkInUuid`. Default admin is `admin` / `Admin123!`.
 
 ## Key config (`application-dev.properties`)
 
