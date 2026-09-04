@@ -1,0 +1,694 @@
+{
+  "info": {
+    "_postman_id": "a7c2e1d4-8f3b-4c91-9e6a-digitaldetox01",
+    "name": "Unplug — Digital Detox API",
+    "description": "Integration requests for the Unplug REST API (`digital-detox-project`).\n\n**Prerequisites:** backend running on `http://localhost:8080` with PostgreSQL.\n\n**Suggested run order (demo flow):**\n1. Auth → Login as admin\n2. Members → Register member\n3. Coaches → Register coach\n4. Coaches → List pending coaches → Approve coach\n5. Auth → Login as coach\n6. Members → List members\n7. Plans → Create plan → Get plan → Add goal → Create review\n8. Auth → Login as member\n9. Check-ins → Create check-in → List check-ins\n10. Attachments → Upload (pick a file) → List → Download\n\nPublic requests disable auth. Protected requests send `Authorization: Bearer {{token}}`.\nRegister requests generate unique usernames via `runId` so the collection can be re-run.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.collectionVariables.set('runId', runId);",
+          "  pm.collectionVariables.set('memberUsername', 'member_' + runId);",
+          "  pm.collectionVariables.set('coachUsername', 'coach_' + runId);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "role", "value": "" },
+    { "key": "memberUuid", "value": "" },
+    { "key": "coachUuid", "value": "" },
+    { "key": "planUuid", "value": "" },
+    { "key": "checkInUuid", "value": "" },
+    { "key": "attachmentUuid", "value": "" },
+    { "key": "runId", "value": "" },
+    { "key": "adminUsername", "value": "admin" },
+    { "key": "adminPassword", "value": "Admin123!" },
+    { "key": "memberUsername", "value": "" },
+    { "key": "memberPassword", "value": "Member123!" },
+    { "key": "coachUsername", "value": "" },
+    { "key": "coachPassword", "value": "Coach123!" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login as admin returns 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Response has JWT and ADMIN role', () => {",
+                  "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+                  "  pm.expect(json.role).to.eql('ADMIN');",
+                  "});",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('role', json.role);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/authenticate",
+            "description": "Public. Stores JWT in `token` for subsequent requests."
+          }
+        },
+        {
+          "name": "Login as coach",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login as coach returns 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('role', json.role);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{coachUsername}}\",\n  \"password\": \"{{coachPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/authenticate"
+          }
+        },
+        {
+          "name": "Login as member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login as member returns 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('role', json.role);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{memberUsername}}\",\n  \"password\": \"{{memberPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/authenticate"
+          }
+        },
+        {
+          "name": "Login with invalid credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Invalid login returns 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"wrong-password\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/authenticate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "Register member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Member register returns 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Member uuid is returned', () => pm.expect(json.uuid).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('memberUuid', json.uuid);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"username\": \"{{memberUsername}}\",\n    \"email\": \"{{memberUsername}}@example.com\",\n    \"password\": \"{{memberPassword}}\"\n  },\n  \"displayName\": \"Sam Member\",\n  \"timezone\": \"Europe/Athens\",\n  \"mainGoal\": \"Less evening scrolling\"\n}"
+            },
+            "url": "{{baseUrl}}/members/register",
+            "description": "Public. Saves `memberUuid` for plan creation."
+          }
+        },
+        {
+          "name": "List members",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List members returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/members",
+            "description": "Requires VIEW_MEMBERS (coach/admin)."
+          }
+        },
+        {
+          "name": "Get current member",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get current member returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/members/me",
+            "description": "Run while logged in as the registered member."
+          }
+        },
+        {
+          "name": "Get member by uuid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get member by uuid returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/members/{{memberUuid}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coaches",
+      "item": [
+        {
+          "name": "Register coach",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Coach register returns 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Coach starts unapproved', () => pm.expect(json.approved).to.eql(false));",
+                  "pm.collectionVariables.set('coachUuid', json.uuid);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"username\": \"{{coachUsername}}\",\n    \"email\": \"{{coachUsername}}@example.com\",\n    \"password\": \"{{coachPassword}}\"\n  },\n  \"displayName\": \"Alex Coach\",\n  \"specialty\": \"Teen screen habits\",\n  \"bio\": \"Helps teens unplug without the guilt.\",\n  \"yearsExperience\": 4\n}"
+            },
+            "url": "{{baseUrl}}/coaches/register",
+            "description": "Public. Coach stays pending until an admin approves."
+          }
+        },
+        {
+          "name": "List pending coaches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List pending coaches returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/coaches/pending",
+            "description": "Admin only (APPROVE_COACH). Login as admin first."
+          }
+        },
+        {
+          "name": "Approve coach",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Approve coach returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Coach is now approved', () => pm.expect(pm.response.json().approved).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/coaches/{{coachUuid}}/approve",
+            "description": "Admin only. Requires `coachUuid` from Register coach."
+          }
+        },
+        {
+          "name": "List approved coaches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List approved coaches returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/coaches"
+          }
+        },
+        {
+          "name": "Get coach by uuid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get coach by uuid returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/coaches/{{coachUuid}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Plans",
+      "item": [
+        {
+          "name": "Create plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create plan returns 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Plan uuid is returned', () => pm.expect(json.uuid).to.be.a('string').and.not.empty);",
+                  "pm.collectionVariables.set('planUuid', json.uuid);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"memberProfileUuid\": \"{{memberUuid}}\",\n  \"title\": \"Weekend unwind\",\n  \"description\": \"Cut evening screen time\",\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-09-30\",\n  \"status\": \"ACTIVE\",\n  \"targetScreenMinutes\": 120,\n  \"targetSocialMinutes\": 45,\n  \"focusArea\": \"Social media\"\n}"
+            },
+            "url": "{{baseUrl}}/plans",
+            "description": "Approved coach (CREATE_PLAN). Login as the approved coach first."
+          }
+        },
+        {
+          "name": "List plans",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List plans returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is a Spring page', () => pm.expect(pm.response.json()).to.have.property('content'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/plans?page=0&size=10&sort=startDate,desc"
+          }
+        },
+        {
+          "name": "Get plan by uuid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get plan returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/plans/{{planUuid}}"
+          }
+        },
+        {
+          "name": "Update plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update plan returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uuid\": \"{{planUuid}}\",\n  \"title\": \"Weekend unwind (updated)\",\n  \"description\": \"Cut evening screen time\",\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-09-30\",\n  \"status\": \"ACTIVE\",\n  \"targetScreenMinutes\": 90,\n  \"targetSocialMinutes\": 30,\n  \"focusArea\": \"Social media\"\n}"
+            },
+            "url": "{{baseUrl}}/plans/{{planUuid}}"
+          }
+        },
+        {
+          "name": "Update plan status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Update plan status returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/plans/{{planUuid}}/status?status=ACTIVE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Goals",
+      "item": [
+        {
+          "name": "Add goal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Add goal returns 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Stay under 2h screen time\",\n  \"description\": \"Weeknight target\",\n  \"metricType\": \"SCREEN_MINUTES\",\n  \"targetValue\": 120,\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": "{{baseUrl}}/plans/{{planUuid}}/goals",
+            "description": "Assigned coach only (EDIT_PLAN)."
+          }
+        },
+        {
+          "name": "List goals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List goals returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/plans/{{planUuid}}/goals"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Create weekly review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create review returns 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weekStart\": \"2026-09-01\",\n  \"summary\": \"Good start — evenings are already quieter.\",\n  \"recommendation\": \"Keep the phone charger outside the bedroom.\",\n  \"riskLevel\": \"LOW\"\n}"
+            },
+            "url": "{{baseUrl}}/plans/{{planUuid}}/reviews",
+            "description": "Assigned coach only (CREATE_REVIEW)."
+          }
+        },
+        {
+          "name": "List reviews",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List reviews returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/plans/{{planUuid}}/reviews"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check-ins",
+      "item": [
+        {
+          "name": "Create check-in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create check-in returns 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('checkInUuid', json.uuid);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entryDate\": \"2026-09-03\",\n  \"totalScreenMinutes\": 95,\n  \"socialMediaMinutes\": 30,\n  \"sleepHours\": 7.5,\n  \"focusScore\": 8,\n  \"stressLevel\": 4,\n  \"cravingLevel\": 3,\n  \"notes\": \"Logged off after dinner\"\n}"
+            },
+            "url": "{{baseUrl}}/plans/{{planUuid}}/check-ins",
+            "description": "Member who owns the plan (CREATE_CHECKIN). Login as member first."
+          }
+        },
+        {
+          "name": "List check-ins",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List check-ins returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/plans/{{planUuid}}/check-ins?page=0&size=10&sort=entryDate,desc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attachments",
+      "item": [
+        {
+          "name": "Upload attachment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Upload returns 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('attachmentUuid', pm.response.json().uuid);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select an image or PDF (max 5 MB) before sending."
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/check-ins/{{checkInUuid}}/attachments",
+            "description": "Multipart field name must be `file`. Member who owns the check-in."
+          }
+        },
+        {
+          "name": "List attachments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('List attachments returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/check-ins/{{checkInUuid}}/attachments"
+          }
+        },
+        {
+          "name": "Download attachment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Download returns 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/check-ins/{{checkInUuid}}/attachments/{{attachmentUuid}}"
+          }
+        }
+      ]
+    }
+  ]
+}
